@@ -9,9 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrasladoCustodiaResponseDTO {
-    private Long idTrasladoCustodia;
-    private Long idTraslado;
-    private Long idPersonal;
-    private Long rolCustodiaId;
+public class ValidacionTrasladoDTO {
+    private Boolean tieneTrasladoActivo;
+    private TrasladoResponseDTO trasladoActivo;
+    private String mensaje;
 }

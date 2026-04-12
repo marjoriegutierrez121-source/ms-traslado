@@ -18,5 +18,8 @@ public class TrasladoRequestDTO {
     private Long causaId;
     private Long idResolucion;
     private LocalDateTime fechaTraslado;
+    private LocalDateTime fechaLlegada;
+    private Long estadoTrasladoId;
+    private String observaciones;
     private List<TrasladoCustodiaRequestDTO> custodias;
 }

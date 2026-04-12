@@ -19,6 +19,9 @@ public class TrasladoResponseDTO {
     private Long causaId;
     private Long idResolucion;
     private LocalDateTime fechaTraslado;
-    private Boolean estado;
+    private LocalDateTime fechaLlegada;
+    private Long estadoTrasladoId;
+    private String estadoNombre;
+    private String observaciones;
     private List<TrasladoCustodiaResponseDTO> custodias;
 }

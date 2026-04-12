@@ -4,14 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrasladoCustodiaResponseDTO {
-    private Long idTrasladoCustodia;
-    private Long idTraslado;
-    private Long idPersonal;
-    private Long rolCustodiaId;
+public class RegistroLlegadaDTO {
+    private LocalDateTime fechaLlegada;
+    private String observaciones;
 }

@@ -2,6 +2,7 @@ package pe.inpe.ms_traslado.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import pe.inpe.ms_traslado.util.AuditModel;
@@ -15,6 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "traslado")
+@EqualsAndHashCode(callSuper = false)
 public class Traslado extends AuditModel {
 
     @Id
@@ -40,8 +42,14 @@ public class Traslado extends AuditModel {
     @Column(name = "fecha_traslado")
     private LocalDateTime fechaTraslado;
 
-    @Column(nullable = false)
-    private Boolean estado = true;
+    @Column(name = "fecha_llegada")
+    private LocalDateTime fechaLlegada;
+
+    @Column(name = "estado_traslado_id")
+    private Long estadoTrasladoId;
+
+    @Column(name = "observaciones")
+    private String observaciones;
 
     @OneToMany(mappedBy = "traslado", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TrasladoCustodia> custodias = new ArrayList<>();

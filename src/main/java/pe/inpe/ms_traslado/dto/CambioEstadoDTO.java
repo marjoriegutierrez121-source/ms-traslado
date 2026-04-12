@@ -5,13 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrasladoCustodiaResponseDTO {
-    private Long idTrasladoCustodia;
-    private Long idTraslado;
-    private Long idPersonal;
-    private Long rolCustodiaId;
+public class CambioEstadoDTO {
+    private Long estadoTrasladoId;  // 2=En tránsito, 3=Completado, 4=Cancelado
+    private String observaciones;
 }

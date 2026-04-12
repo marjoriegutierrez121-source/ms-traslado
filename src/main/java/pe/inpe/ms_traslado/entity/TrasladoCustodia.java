@@ -1,10 +1,7 @@
 package pe.inpe.ms_traslado.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import pe.inpe.ms_traslado.util.AuditModel;
 
 @Data
@@ -12,6 +9,7 @@ import pe.inpe.ms_traslado.util.AuditModel;
 @AllArgsConstructor
 @Entity
 @Table(name = "traslado_custodia")
+@EqualsAndHashCode(callSuper = false)
 public class TrasladoCustodia extends AuditModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,5 +26,4 @@ public class TrasladoCustodia extends AuditModel {
 
     @Column(name = "rol_custodia_id")
     private Long rolCustodiaId;
-
 }
