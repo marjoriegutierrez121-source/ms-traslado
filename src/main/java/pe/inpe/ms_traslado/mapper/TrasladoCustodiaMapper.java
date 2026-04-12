@@ -19,13 +19,11 @@ public interface TrasladoCustodiaMapper {
     @Mapping(target = "lastModificationUser", ignore = true)
     TrasladoCustodia toEntity(TrasladoCustodiaRequestDTO requestDTO);
 
-    // TRASLADO CUSTODIA: Entity → ResponseDTO
     @Mapping(source = "idTrasladoCustodia", target = "idTrasladoCustodia")
     @Mapping(source = "traslado.idTraslado", target = "idTraslado")
     @Mapping(source = "idPersonal", target = "idPersonal")
     @Mapping(source = "rolCustodiaId", target = "rolCustodiaId")
     TrasladoCustodiaResponseDTO toResponseDTO(TrasladoCustodia entity);
 
-    // TRASLADO CUSTODIA: Lista de Entities → Lista de ResponseDTO
     List<TrasladoCustodiaResponseDTO> toResponseDTOList(List<TrasladoCustodia> entities);
 }

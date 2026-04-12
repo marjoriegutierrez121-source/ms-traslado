@@ -37,12 +37,10 @@ public class TrasladoCustodiaServiceImpl implements TrasladoCustodiaService {
         Traslado traslado = trasladoRepository.findById(idTraslado)
                 .orElseThrow(() -> new RuntimeException("Traslado no encontrado con ID: " + idTraslado));
 
-        // Solo se puede asignar custodios si está PROGRAMADO
         if (!TrasladoEstados.PROGRAMADO.equals(traslado.getEstadoTrasladoId())) {
             throw new IllegalStateException("Solo se pueden asignar custodios en traslados PROGRAMADOS");
         }
 
-        // Validar que el mismo personal no esté ya asignado
         if (trasladoCustodiaRepository.existsByTrasladoAndIdPersonal(traslado, requestDto.getIdPersonal())) {
             throw new IllegalStateException("El personal ya está asignado como custodio de este traslado");
         }
@@ -50,7 +48,6 @@ public class TrasladoCustodiaServiceImpl implements TrasladoCustodiaService {
         TrasladoCustodia custodia = trasladoCustodiaMapper.toEntity(requestDto);
         custodia.setTraslado(traslado);
 
-        // Datos de auditoría
         custodia.setRegistrationDate(LocalDateTime.now());
         custodia.setRegistrationUser("SYSTEM");
         custodia.setLastModificationDate(LocalDateTime.now());

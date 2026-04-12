@@ -23,7 +23,6 @@ public interface TrasladoMapper {
     @Mapping(target = "custodias", ignore = true)
     Traslado toEntity(TrasladoRequestDTO requestDTO);
 
-
     @Mapping(source = "idTraslado", target = "idTraslado")
     @Mapping(source = "idInterno", target = "idInterno")
     @Mapping(source = "sedeOrigenId", target = "sedeOrigenId")
@@ -38,7 +37,6 @@ public interface TrasladoMapper {
     @Mapping(target = "custodias", source = "custodias", qualifiedByName = "mapCustodias")
     TrasladoResponseDTO toResponseDTO(Traslado entity);
 
-    // TRASLADO: Actualizar entity existente (para PUT)
     @Mapping(target = "idTraslado", ignore = true)
     @Mapping(target = "estadoTrasladoId", ignore = true)
     @Mapping(target = "registrationDate", ignore = true)
@@ -48,10 +46,8 @@ public interface TrasladoMapper {
     @Mapping(target = "custodias", ignore = true)
     void updateEntity(TrasladoRequestDTO requestDTO, @MappingTarget Traslado entity);
 
-    // TRASLADO: Lista de Entities → Lista de ResponseDTO
     List<TrasladoResponseDTO> toResponseDTOList(List<Traslado> entities);
 
-    //Mapear lista de custodias
     @Named("mapCustodias")
     default List<TrasladoCustodiaResponseDTO> mapCustodias(List<TrasladoCustodia> custodias) {
         if (custodias == null) {

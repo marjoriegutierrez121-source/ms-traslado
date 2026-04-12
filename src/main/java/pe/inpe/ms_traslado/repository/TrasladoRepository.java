@@ -33,17 +33,6 @@ public interface TrasladoRepository extends JpaRepository<Traslado, Long> {
     List<Traslado> findByFechaLlegadaIsNullAndEstadoTrasladoIdIn(List<Long> estados);
     List<Traslado> findByFechaLlegadaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
 
-    /*@Query(value ="SELECT t FROM Traslado t WHERE " +
-            "(:estado IS NULL OR t.estadoTrasladoId = :estado) AND " +
-            "(:sedeOrigen IS NULL OR t.sedeOrigenId = :sedeOrigen) AND " +
-            "(:sedeDestino IS NULL OR t.sedeDestinoId = :sedeDestino) AND " +
-            "(:fechaInicio IS NULL OR t.fechaTraslado >= :fechaInicio) AND " +
-            "(:fechaFin IS NULL OR t.fechaTraslado <= :fechaFin)")
-    List<Traslado> findByFiltros(@Param("estado") Long estado,
-                                 @Param("sedeOrigen") Long sedeOrigen,
-                                 @Param("sedeDestino") Long sedeDestino,
-                                 @Param("fechaInicio") LocalDateTime fechaInicio,
-                                 @Param("fechaFin") LocalDateTime fechaFin);*/
     default List<Traslado> findByFiltros(Long estado, Long sedeOrigen, Long sedeDestino,
                                          LocalDateTime fechaInicio, LocalDateTime fechaFin) {
         return findAll().stream()
