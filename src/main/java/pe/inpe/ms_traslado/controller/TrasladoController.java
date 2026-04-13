@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/api/v1/traslados")
+@RequestMapping("/traslados")
 public class TrasladoController {
 
     private final TrasladoService trasladoService;
