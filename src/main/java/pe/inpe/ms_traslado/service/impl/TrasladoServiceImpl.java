@@ -1,243 +1,270 @@
 package pe.inpe.ms_traslado.service.impl;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.inpe.ms_traslado.dto.*;
 import pe.inpe.ms_traslado.entity.Traslado;
-import pe.inpe.ms_traslado.entity.TrasladoCustodia;
-import pe.inpe.ms_traslado.exception.BadRequestException;
+import pe.inpe.ms_traslado.exception.BusinessException;
 import pe.inpe.ms_traslado.exception.ResourceNotFoundException;
-import pe.inpe.ms_traslado.mapper.TrasladoCustodiaMapper;
 import pe.inpe.ms_traslado.mapper.TrasladoMapper;
+import pe.inpe.ms_traslado.remote.MsInstitucionesClient;
+import pe.inpe.ms_traslado.remote.MsInternoClient;
 import pe.inpe.ms_traslado.repository.TrasladoCustodiaRepository;
 import pe.inpe.ms_traslado.repository.TrasladoRepository;
 import pe.inpe.ms_traslado.service.TrasladoService;
-import pe.inpe.ms_traslado.util.TrasladoEstados;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static pe.inpe.ms_traslado.util.GeneralConstants.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TrasladoServiceImpl implements TrasladoService {
 
-    public final TrasladoRepository trasladoRepository;
-    public final TrasladoCustodiaRepository trasladoCustodiaRepository;
-    public final TrasladoMapper trasladoMapper;
-
+    private final TrasladoRepository trasladoRepository;
+    private final TrasladoMapper trasladoMapper;
+    private final MsInternoClient internoClient;
+    private final MsInstitucionesClient institucionesClient;
 
     @Override
-    @Transactional
-    public TrasladoResponseDTO addTraslado(TrasladoRequestDTO trasladoDto) {
-        log.info("Registrando nuevo traslado para interno: {}", trasladoDto.getIdInterno());
-        if (trasladoRepository.existsByIdInternoAndEstadoTrasladoIdIn(
-                trasladoDto.getIdInterno(), TrasladoEstados.ESTADOS_ACTIVOS)) {
-            throw new IllegalStateException("El interno ya tiene un traslado activo (Programado o En tránsito)");
-        }
+    public TrasladoResponseDTO registrar(TrasladoRequestDTO dto) {
+        log.info("Registrando traslado para interno id: {}", dto.getIdInterno());
 
-        if (trasladoDto.getSedeOrigenId().equals(trasladoDto.getSedeDestinoId())) {
-            throw new IllegalArgumentException("La sede origen y destino no pueden ser iguales");
-        }
-        if (trasladoDto.getFechaTraslado().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("La fecha de traslado no puede ser en el pasado");
-        }
-        Traslado traslado = trasladoMapper.toEntity(trasladoDto);
-        if (traslado.getEstadoTrasladoId() == null) {
-            traslado.setEstadoTrasladoId(TrasladoEstados.PROGRAMADO);
-        }
-        traslado.setRegistrationDate(LocalDateTime.now());
-        traslado.setRegistrationUser("SYSTEM");
-        traslado.setLastModificationDate(LocalDateTime.now());
-        traslado.setLastModificationUser("SYSTEM");
+        validarInternoExiste(dto.getIdInterno());
+        validarInternoSinTrasladoActivo(dto.getIdInterno());
+        validarSedeExiste(dto.getSedeOrigenId());
+        validarSedeExiste(dto.getSedeDestinoId());
+        validarSedesDistintas(dto.getSedeOrigenId(), dto.getSedeDestinoId());
 
-        Traslado saved = trasladoRepository.save(traslado);
-        log.info("Traslado registrado exitosamente con ID: {}", saved.getIdTraslado());
-        return trasladoMapper.toResponseDTO(saved);
+        Traslado traslado = trasladoMapper.toEntity(dto);
+        traslado.setEstadoTrasladoId(ESTADO_TRASLADO_PROGRAMADO);
+
+        Traslado guardado = trasladoRepository.save(traslado);
+        log.info("Traslado registrado con id: {}", guardado.getIdTraslado());
+        return trasladoMapper.toDto(guardado);
     }
 
     @Override
-    public List<TrasladoResponseDTO> getTrasladosConFiltros(Long estado, Long sedeOrigen, Long sedeDestino, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+    @Transactional(readOnly = true)
+    public List<TrasladoResponseDTO> listarConFiltros(Long estado, Long sedeOrigen,
+                                                      Long sedeDestino,
+                                                      LocalDateTime fechaInicio,
+                                                      LocalDateTime fechaFin) {
         log.info("Listando traslados con filtros - estado: {}, sedeOrigen: {}, sedeDestino: {}",
                 estado, sedeOrigen, sedeDestino);
-        List<Traslado> traslados= trasladoRepository.findByFiltros(
-                estado, sedeOrigen, sedeDestino, fechaInicio, fechaFin);
-        return trasladoMapper.toResponseDTOList(traslados);
+        return trasladoMapper.toDtoList(
+                trasladoRepository.findByFiltros(estado, sedeOrigen, sedeDestino, fechaInicio, fechaFin)
+        );
     }
 
     @Override
-    public TrasladoResponseDTO getTrasladoXId(Long id) {
-        log.info("Buscando traslado con ID :"+id);
-        Traslado traslado= trasladoRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException("Traslado no encontrado con ID :"+id));
-        TrasladoResponseDTO response= trasladoMapper.toResponseDTO(traslado);
-        return response;
+    @Transactional(readOnly = true)
+    public TrasladoResponseDTO obtenerPorId(Long id) {
+        log.info("Obteniendo traslado id: {}", id);
+        return trasladoMapper.toDto(buscarPorId(id));
     }
 
     @Override
-    public List<TrasladoResponseDTO> getTrasladosXIdInterno(Long idInterno) {
-        log.info("Listando traslados del interno: {}", idInterno);
-        List<Traslado> traslados = trasladoRepository.findByIdInterno(idInterno);
-        return trasladoMapper.toResponseDTOList(traslados);
+    public TrasladoResponseDTO actualizar(Long id, TrasladoRequestDTO dto) {
+        log.info("Actualizando traslado id: {}", id);
+
+        Traslado traslado = buscarPorId(id);
+        validarEstadoModificable(traslado);
+        validarSedeExiste(dto.getSedeOrigenId());
+        validarSedeExiste(dto.getSedeDestinoId());
+        validarSedesDistintas(dto.getSedeOrigenId(), dto.getSedeDestinoId());
+
+        trasladoMapper.updateEntityFromDto(dto, traslado);
+        return trasladoMapper.toDto(trasladoRepository.save(traslado));
     }
 
     @Override
-    @Transactional
-    public TrasladoResponseDTO putTraslado(Long id, TrasladoRequestDTO trasladoDto) {
-        log.info("Actualizando traslado ID: {}", id);
+    public TrasladoResponseDTO cambiarEstado(Long id, EstadoUpdateDTO dto) {
+        log.info("Cambiando estado del traslado id: {} → estado: {}", id, dto.getEstadoTrasladoId());
 
-        Traslado traslado = trasladoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Traslado no encontrado con ID: " + id));
+        Traslado traslado = buscarPorId(id);
+        validarTransicionEstado(traslado.getEstadoTrasladoId(), dto.getEstadoTrasladoId());
 
-        if (!TrasladoEstados.PROGRAMADO.equals(traslado.getEstadoTrasladoId())) {
-            throw new IllegalStateException("Solo se pueden modificar traslados en estado PROGRAMADO");
+        traslado.setEstadoTrasladoId(dto.getEstadoTrasladoId());
+        if (dto.getObservaciones() != null) {
+            traslado.setObservaciones(dto.getObservaciones());
         }
-
-        if (trasladoDto.getFechaTraslado().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("La fecha de traslado no puede ser en el pasado");
-        }
-
-        trasladoMapper.updateEntity(trasladoDto, traslado);
-        traslado.setLastModificationDate(LocalDateTime.now());
-        traslado.setLastModificationUser("SYSTEM");
-
-        Traslado updated = trasladoRepository.save(traslado);
-        return trasladoMapper.toResponseDTO(updated);
+        return trasladoMapper.toDto(trasladoRepository.save(traslado));
     }
 
     @Override
-    @Transactional
-    public TrasladoResponseDTO patchCambiarEstado(Long id, CambioEstadoDTO cambioEstadoDto) {
-        log.info("Cambiando estado del traslado ID: {} a estado: {}", id, cambioEstadoDto.getEstadoTrasladoId());
+    public TrasladoResponseDTO registrarLlegada(Long id, LlegadaRegistroDTO dto) {
+        log.info("Registrando llegada del traslado id: {}", id);
 
-        Traslado traslado = trasladoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Traslado no encontrado con ID: " + id));
+        Traslado traslado = buscarPorId(id);
 
-        Long estadoActual = traslado.getEstadoTrasladoId();
-        Long nuevoEstado = cambioEstadoDto.getEstadoTrasladoId();
-
-        if (!TrasladoEstados.puedeCambiarA(estadoActual, nuevoEstado)) {
-            throw new IllegalStateException(
-                    String.format("No se puede cambiar de estado %d a %d", estadoActual, nuevoEstado));
+        if (!traslado.getEstadoTrasladoId().equals(ESTADO_TRASLADO_EN_TRANSITO)) {
+            throw new BusinessException("Solo se puede registrar llegada de traslados en estado EN_TRANSITO");
         }
 
-        if (TrasladoEstados.EN_TRANSITO.equals(nuevoEstado)) {
-            List<TrasladoCustodia> custodias = trasladoCustodiaRepository.findByTrasladoIdTraslado(id);
-            if (custodias.isEmpty()) {
-                throw new IllegalStateException("No se puede iniciar el traslado sin custodios asignados");
-            }
-        }
-
-        if (TrasladoEstados.COMPLETADO.equals(nuevoEstado)) {
-            if (traslado.getFechaLlegada() == null) {
-                throw new IllegalStateException("No se puede completar un traslado sin registrar la llegada");
-            }
-        }
-
-        traslado.setEstadoTrasladoId(nuevoEstado);
-        if (cambioEstadoDto.getObservaciones() != null) {
-            traslado.setObservaciones(cambioEstadoDto.getObservaciones());
-        }
-        traslado.setLastModificationDate(LocalDateTime.now());
-        traslado.setLastModificationUser("SYSTEM");
-
-        Traslado updated = trasladoRepository.save(traslado);
-        return trasladoMapper.toResponseDTO(updated);
+        traslado.setFechaLlegada(dto.getFechaLlegada());
+        traslado.setEstadoTrasladoId(ESTADO_TRASLADO_COMPLETADO);
+        return trasladoMapper.toDto(trasladoRepository.save(traslado));
     }
 
     @Override
-    @Transactional
-    public TrasladoResponseDTO patchRegistrarLlegada(Long id, RegistroLlegadaDTO registroLlegadaDto) {
-        log.info("Registrando llegada del traslado ID: {}", id);
+    @Transactional(readOnly = true)
+    public List<TrasladoResponseDTO> listarPorInterno(Long idInterno) {
+        log.info("Listando traslados del interno id: {}", idInterno);
+        return trasladoMapper.toDtoList(
+                trasladoRepository.findByIdInternoOrderByFechaTrasladoDesc(idInterno)
+        );
+    }
 
-        Traslado traslado = trasladoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Traslado no encontrado con ID: " + id));
+    @Override
+    @Transactional(readOnly = true)
+    public List<TrasladoResponseDTO> listarPorSedeOrigen(Long idSede) {
+        log.info("Listando traslados con sede origen id: {}", idSede);
+        return trasladoMapper.toDtoList(trasladoRepository.findBySedeOrigenId(idSede));
+    }
 
-        if (!TrasladoEstados.EN_TRANSITO.equals(traslado.getEstadoTrasladoId())) {
-            throw new IllegalStateException("Solo se puede registrar llegada en traslados EN_TRANSITO");
+    @Override
+    @Transactional(readOnly = true)
+    public List<TrasladoResponseDTO> listarPorSedeDestino(Long idSede) {
+        log.info("Listando traslados con sede destino id: {}", idSede);
+        return trasladoMapper.toDtoList(trasladoRepository.findBySedeDestinoId(idSede));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TrasladoResponseDTO> listarEnCurso() {
+        log.info("Listando traslados en curso");
+        return trasladoMapper.toDtoList(
+                trasladoRepository.findByEstadoTrasladoId(List.of(ESTADO_TRASLADO_EN_TRANSITO))
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ValidacionTrasladoActivoDTO validarTrasladosActivos(Long idInterno) {
+        log.info("Validando traslados activos del interno id: {}", idInterno);
+
+        boolean tieneActivo = trasladoRepository
+                .existsByIdInternoAndEstadoTrasladoIdIn(idInterno, ESTADOS_TRASLADO_ACTIVOS);
+
+        if (!tieneActivo) {
+            return ValidacionTrasladoActivoDTO.builder()
+                    .idInterno(idInterno)
+                    .tieneTrasladoActivo(false)
+                    .idTrasladoActivo(null)
+                    .estadoActual(null)
+                    .build();
         }
 
-        if (registroLlegadaDto.getFechaLlegada().isBefore(traslado.getFechaTraslado())) {
-            throw new IllegalArgumentException("La fecha de llegada no puede ser anterior a la fecha de salida");
+        // Trae el más reciente para exponer su id y estado
+        Traslado activo = trasladoRepository
+                .findByIdInternoOrderByFechaTrasladoDesc(idInterno)
+                .stream()
+                .filter(t -> ESTADOS_TRASLADO_ACTIVOS.contains(t.getEstadoTrasladoId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Traslado activo no encontrado"));
+
+        return ValidacionTrasladoActivoDTO.builder()
+                .idInterno(idInterno)
+                .tieneTrasladoActivo(true)
+                .idTrasladoActivo(activo.getIdTraslado())
+                .estadoActual(activo.getEstadoTrasladoId())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ValidacionCapacidadDTO validarCapacidadSede(Long idSede) {
+        log.info("Validando capacidad de sede id: {}", idSede);
+
+        GenericResponseDTO<Boolean> disponibilidadResponse = institucionesClient.verificarDisponibilidad(idSede);
+
+        if (disponibilidadResponse == null || disponibilidadResponse.getError() != null) {
+            throw new ResourceNotFoundException("No se pudo obtener disponibilidad de la sede id: " + idSede);
         }
 
-        traslado.setFechaLlegada(registroLlegadaDto.getFechaLlegada());
-        if (registroLlegadaDto.getObservaciones() != null) {
-            traslado.setObservaciones(registroLlegadaDto.getObservaciones());
-        }
-        traslado.setLastModificationDate(LocalDateTime.now());
-        traslado.setLastModificationUser("SYSTEM");
+        Boolean disponible = disponibilidadResponse.getResponse();
 
-        Traslado updated = trasladoRepository.save(traslado);
-        return trasladoMapper.toResponseDTO(updated);
-    }
+        GenericResponseDTO<CapacidadSedeDTO> capacidadResponse = institucionesClient.obtenerCapacidadSede(idSede);
+        CapacidadSedeDTO capacidad = capacidadResponse != null ? capacidadResponse.getResponse() : null;
 
-    @Override
-    public List<TrasladoResponseDTO> getTrasladosXSedeOrigen(Long idSede) {
-        log.info("Listando traslados con sede origen: {}", idSede);
-
-        List<Traslado> traslados = trasladoRepository.findBySedeOrigenId(idSede);
-        return trasladoMapper.toResponseDTOList(traslados);
-    }
-
-    @Override
-    public List<TrasladoResponseDTO> getTrasladosXSedeDestino(Long idSede) {
-        log.info("Listando traslados con sede destino: {}", idSede);
-
-        List<Traslado> traslados = trasladoRepository.findBySedeDestinoId(idSede);
-        return trasladoMapper.toResponseDTOList(traslados);
-    }
-
-    @Override
-    public List<TrasladoResponseDTO> getTrasladosEnCurso() {
-        log.info("Listando traslados en curso (EN_TRANSITO)");
-
-        List<Traslado> traslados = trasladoRepository.findByEstadoTrasladoId(TrasladoEstados.EN_TRANSITO);
-        return trasladoMapper.toResponseDTOList(traslados);
-    }
-
-    @Override
-    public ValidacionTrasladoDTO validarTrasladoActivo(Long idInterno) {
-        log.info("Validando si el interno {} tiene traslado activo", idInterno);
-
-        boolean tieneActivo = trasladoRepository.existsByIdInternoAndEstadoTrasladoIdIn(
-                idInterno, TrasladoEstados.ESTADOS_ACTIVOS);
-
-        ValidacionTrasladoDTO.ValidacionTrasladoDTOBuilder builder = ValidacionTrasladoDTO.builder()
-                .tieneTrasladoActivo(tieneActivo);
-
-        if (tieneActivo) {
-            Traslado trasladoActivo = trasladoRepository.findTrasladoActivoByInterno(
-                    idInterno, TrasladoEstados.ESTADOS_ACTIVOS).orElse(null);
-            builder.trasladoActivo(trasladoMapper.toResponseDTO(trasladoActivo))
-                    .mensaje("El interno tiene un traslado " +
-                            TrasladoEstados.getNombre(trasladoActivo.getEstadoTrasladoId()));
-        } else {
-            builder.mensaje("El interno no tiene traslados activos");
-        }
-
-        return builder.build();
-    }
-
-    @Override
-    public ValidacionCapacidadDTO verificarCapacidadSede(Long idSede) {
-        log.info("Verificando capacidad de sede ID: {}", idSede);
-        List<Traslado> trasladosActivos = trasladoRepository
-                .findBySedeDestinoIdAndEstadoTrasladoIdIn(idSede, TrasladoEstados.ESTADOS_ACTIVOS);
-
-        Integer internosActuales = trasladosActivos.size();
+        int capacidadMaxima = capacidad != null ? capacidad.getCapacidadMaxima() : 0;
+        int ocupacionActual = capacidad != null ? capacidad.getOcupacionActual() : 0;
+        int disponibles = capacidadMaxima - ocupacionActual;
 
         return ValidacionCapacidadDTO.builder()
-                .sedeId(idSede)
-                .capacidadTotal(null)
-                .internosActuales(null)
-                .internosActuales(internosActuales)
-                .disponibles(null)
-                .puedeRecibir(null)
-                .mensaje("Pendiente integración con ms-institucion y ms-personal")
+                .idSede(idSede)
+                .puedeRecibirInternos(Boolean.TRUE.equals(disponible))
+                .capacidadMaxima(capacidadMaxima)
+                .ocupacionActual(ocupacionActual)
+                .disponibles(disponibles)
                 .build();
+    }
+
+    private Traslado buscarPorId(Long id) {
+        return trasladoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Traslado no encontrado con id: " + id));
+    }
+
+    private void validarInternoExiste(Long idInterno) {
+        try {
+            GenericResponseDTO<InternoResponseDTO> response = internoClient.obtenerInterno(idInterno);
+            if (response == null || response.getError() != null || response.getResponse() == null) {
+                throw new ResourceNotFoundException("Interno no encontrado con id: " + idInterno);
+            }
+        } catch (FeignException.NotFound e) {
+            throw new ResourceNotFoundException("Interno no encontrado con id: " + idInterno);
+        }
+    }
+
+    private void validarSedeExiste(Long idSede) {
+        try {
+            GenericResponseDTO<SedeResponseDTO> response = institucionesClient.obtenerSede(idSede);
+            if (response == null || response.getError() != null || response.getResponse() == null) {
+                throw new ResourceNotFoundException("Sede no encontrada con id: " + idSede);
+            }
+        } catch (FeignException.NotFound e) {
+            throw new ResourceNotFoundException("Sede no encontrada con id: " + idSede);
+        }
+    }
+
+    private void validarSedesDistintas(Long sedeOrigenId, Long sedeDestinoId) {
+        if (sedeOrigenId.equals(sedeDestinoId)) {
+            throw new BusinessException("La sede origen y la sede destino no pueden ser la misma");
+        }
+    }
+
+    private void validarInternoSinTrasladoActivo(Long idInterno) {
+        boolean tieneActivo = trasladoRepository
+                .existsByIdInternoAndEstadoTrasladoIdIn(idInterno, ESTADOS_TRASLADO_ACTIVOS);
+        if (tieneActivo) {
+            throw new BusinessException("El interno con id " + idInterno + " ya tiene un traslado activo");
+        }
+    }
+
+    private void validarEstadoModificable(Traslado traslado) {
+        if (!traslado.getEstadoTrasladoId().equals(ESTADO_TRASLADO_PROGRAMADO)) {
+            throw new BusinessException("Solo se pueden modificar traslados en estado PROGRAMADO");
+        }
+    }
+
+    private void validarTransicionEstado(Long estadoActual, Long estadoNuevo) {
+        boolean valido = switch (estadoActual.intValue()) {
+            case 1 -> estadoNuevo.equals(ESTADO_TRASLADO_EN_TRANSITO)
+                    || estadoNuevo.equals(ESTADO_TRASLADO_CANCELADO);
+            case 2 -> estadoNuevo.equals(ESTADO_TRASLADO_COMPLETADO)
+                    || estadoNuevo.equals(ESTADO_TRASLADO_CANCELADO);
+            default -> false;
+        };
+
+        if (!valido) {
+            throw new BusinessException(
+                    "Transición de estado no permitida: " + estadoActual + " → " + estadoNuevo);
+        }
     }
 }

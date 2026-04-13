@@ -9,10 +9,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ValidacionCapacidadDTO {
+public class SedeResumenDTO {
     private Long idSede;
-    private Boolean puedeRecibirInternos;
-    private Integer capacidadMaxima;
-    private Integer ocupacionActual;
-    private Integer disponibles;
+    private String nombreSede;
+    private String codigoSede;
+    private String nivelSeguridad;
+    private String direccion;
+    private Boolean activo;
 }

@@ -9,10 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ValidacionCapacidadDTO {
+public class CapacidadSedeDTO {
     private Long idSede;
-    private Boolean puedeRecibirInternos;
     private Integer capacidadMaxima;
     private Integer ocupacionActual;
-    private Integer disponibles;
+    private Integer cuposDisponibles;
 }

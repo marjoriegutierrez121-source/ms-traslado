@@ -7,11 +7,12 @@ import pe.inpe.ms_traslado.dto.TrasladoResponseDTO;
 import java.util.List;
 
 public interface TrasladoCustodiaService {
-    TrasladoCustodiaResponseDTO addCustodia(Long idTraslado, TrasladoCustodiaRequestDTO requestDto);
 
-    void removeCustodia(Long idTraslado, Long idPersonal);
+    TrasladoCustodiaResponseDTO asignarCustodia(Long idTraslado, TrasladoCustodiaRequestDTO dto);
 
-    List<TrasladoCustodiaResponseDTO> getCustodiasXTraslado(Long idTraslado);
+    void removerCustodia(Long idTraslado, Long idPersonal);
 
-    List<TrasladoResponseDTO> getTrasladosXCustodio(Long idPersonal);
+    List<TrasladoCustodiaResponseDTO> listarPorTraslado(Long idTraslado);
+
+    List<TrasladoCustodiaResponseDTO> listarPorPersonal(Long idPersonal);
 }

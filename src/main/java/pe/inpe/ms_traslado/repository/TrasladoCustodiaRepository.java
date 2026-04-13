@@ -10,26 +10,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TrasladoCustodiaRepository extends JpaRepository<TrasladoCustodia,Long> {
-
-    List<TrasladoCustodia> findByTraslado(Traslado traslado);
-
     List<TrasladoCustodia> findByTrasladoIdTraslado(Long idTraslado);
-
     List<TrasladoCustodia> findByIdPersonal(Long idPersonal);
-
+    boolean existsByTrasladoIdTrasladoAndIdPersonal(Long idTraslado, Long idPersonal);
+    Optional<TrasladoCustodia> findByTrasladoIdTrasladoAndIdPersonal(Long idTraslado, Long idPersonal);
     List<TrasladoCustodia> findByIdPersonalAndRolCustodiaId(Long idPersonal, Long rolCustodiaId);
-
-    Optional<TrasladoCustodia> findByTrasladoAndIdPersonal(Traslado traslado, Long idPersonal);
-
-    boolean existsByTrasladoAndIdPersonal(Traslado traslado, Long idPersonal);
-
-    @Query(value="SELECT tc.traslado FROM TrasladoCustodia tc WHERE tc.idPersonal = :idPersonal")
-    List<Traslado> findTrasladosByPersonal(@Param("idPersonal") Long idPersonal);
-
-    @Query(value="SELECT tc.traslado FROM TrasladoCustodia tc " +
-            "WHERE tc.idPersonal = :idPersonal " +
-            "AND tc.traslado.estadoTrasladoId IN :estadosActivos")
-    List<Traslado> findTrasladosActivosByPersonal(@Param("idPersonal") Long idPersonal,
-                                                  @Param("estadosActivos") List<Long> estadosActivos);
-
+    List<TrasladoCustodia> findByTrasladoIdTrasladoAndRolCustodiaId(Long idTraslado, Long rolCustodiaId);
+    void deleteByTrasladoIdTrasladoAndIdPersonal(Long idTraslado, Long idPersonal);
 }

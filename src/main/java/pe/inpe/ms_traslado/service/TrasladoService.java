@@ -7,28 +7,32 @@ import java.util.List;
 
 public interface TrasladoService {
 
-    TrasladoResponseDTO addTraslado(TrasladoRequestDTO trasladoDto);
+    TrasladoResponseDTO registrar(TrasladoRequestDTO dto);
 
-    List<TrasladoResponseDTO> getTrasladosConFiltros(Long estado, Long sedeOrigen, Long sedeDestino,
-                                                     LocalDateTime fechaInicio, LocalDateTime fechaFin);
+    List<TrasladoResponseDTO> listarConFiltros(Long estado, Long sedeOrigen,
+                                               Long sedeDestino,
+                                               LocalDateTime fechaInicio,
+                                               LocalDateTime fechaFin);
 
-    TrasladoResponseDTO getTrasladoXId(Long id);
+    TrasladoResponseDTO obtenerPorId(Long id);
 
-    List<TrasladoResponseDTO> getTrasladosXIdInterno(Long idInterno);
+    TrasladoResponseDTO actualizar(Long id, TrasladoRequestDTO dto);
 
-    TrasladoResponseDTO putTraslado(Long id, TrasladoRequestDTO trasladoDto);
+    TrasladoResponseDTO cambiarEstado(Long id, EstadoUpdateDTO dto);
 
-    TrasladoResponseDTO patchCambiarEstado(Long id, CambioEstadoDTO cambioEstadoDto);
+    TrasladoResponseDTO registrarLlegada(Long id, LlegadaRegistroDTO dto);
 
-    TrasladoResponseDTO patchRegistrarLlegada(Long id, RegistroLlegadaDTO registroLlegadaDto);
+    // ── CONSULTAS ─────────────────────────────────────────────────────────────
+    List<TrasladoResponseDTO> listarPorInterno(Long idInterno);
 
-    List<TrasladoResponseDTO> getTrasladosXSedeOrigen(Long idSede);
+    List<TrasladoResponseDTO> listarPorSedeOrigen(Long idSede);
 
-    List<TrasladoResponseDTO> getTrasladosXSedeDestino(Long idSede);
+    List<TrasladoResponseDTO> listarPorSedeDestino(Long idSede);
 
-    List<TrasladoResponseDTO> getTrasladosEnCurso();
+    List<TrasladoResponseDTO> listarEnCurso();
 
-    ValidacionTrasladoDTO validarTrasladoActivo(Long idInterno);
+    // ── VALIDACIONES (orquestación) ───────────────────────────────────────────
+    ValidacionTrasladoActivoDTO validarTrasladosActivos(Long idInterno);
 
-    ValidacionCapacidadDTO verificarCapacidadSede(Long idSede);
+    ValidacionCapacidadDTO validarCapacidadSede(Long idSede);
 }

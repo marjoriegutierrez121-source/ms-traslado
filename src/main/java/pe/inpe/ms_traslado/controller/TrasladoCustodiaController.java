@@ -1,5 +1,6 @@
 package pe.inpe.ms_traslado.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,44 +19,37 @@ import java.util.List;
 @Slf4j
 @RequestMapping("/api/v1/custodias")
 public class TrasladoCustodiaController {
-    private final TrasladoCustodiaService trasladoCustodiaService;
+    private final TrasladoCustodiaService custodiaService;
 
-    //POST http://localhost:8093/api/v1/custodias/traslados/1/custodias
-    @PostMapping("/traslados/{idTraslado}/custodias")
-    public ResponseEntity<GenericResponseDTO<TrasladoCustodiaResponseDTO>> addCustodio(
+    @PostMapping("/{idTraslado}/custodias")
+    public ResponseEntity<GenericResponseDTO<TrasladoCustodiaResponseDTO>> asignarCustodia(
             @PathVariable Long idTraslado,
-            @RequestBody TrasladoCustodiaRequestDTO dto){
-        log.info("POST /traslados/{}/custodias - Asignar custodio", idTraslado);
-        TrasladoCustodiaResponseDTO response = trasladoCustodiaService.addCustodia(idTraslado, dto);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(GenericResponseDTO.<TrasladoCustodiaResponseDTO>builder().response(response).build());
+            @Valid @RequestBody TrasladoCustodiaRequestDTO dto) {
+        log.info("POST /api/v1/traslados/{}/custodias - Personal: {}", idTraslado, dto.getIdPersonal());
+        TrasladoCustodiaResponseDTO response = custodiaService.asignarCustodia(idTraslado, dto);
+        return ResponseEntity.ok(GenericResponseDTO.<TrasladoCustodiaResponseDTO>builder().response(response).build());
     }
 
-    //DELETE http://localhost:8093/api/v1/custodias/traslados/1/custodias/1
-    @DeleteMapping("/traslados/{idTraslado}/custodias/{idPersonal}")
-    public ResponseEntity<GenericResponseDTO<Void>> removeCustodia(
+    @DeleteMapping("/{idTraslado}/custodias/{idPersonal}")
+    public ResponseEntity<GenericResponseDTO<Void>> removerCustodia(
             @PathVariable Long idTraslado,
             @PathVariable Long idPersonal) {
-        log.info("DELETE /traslados/{}/custodias/{} - Remover custodio", idTraslado, idPersonal);
-        trasladoCustodiaService.removeCustodia(idTraslado, idPersonal);
+        log.info("DELETE /api/v1/traslados/{}/custodias/{}", idTraslado, idPersonal);
+        custodiaService.removerCustodia(idTraslado, idPersonal);
         return ResponseEntity.ok(GenericResponseDTO.<Void>builder().response(null).build());
     }
 
-    //GET http://localhost:8093/api/v1/custodias/traslados/1/custodias
-    @GetMapping("/traslados/{idTraslado}/custodias")
-    public ResponseEntity<GenericResponseDTO<List<TrasladoCustodiaResponseDTO>>> getCustodiasXTraslado(
-            @PathVariable Long idTraslado) {
-        log.info("GET /traslados/{}/custodias - Listar custodios del traslado", idTraslado);
-        List<TrasladoCustodiaResponseDTO> response = trasladoCustodiaService.getCustodiasXTraslado(idTraslado);
+    @GetMapping("/{idTraslado}/custodias")
+    public ResponseEntity<GenericResponseDTO<List<TrasladoCustodiaResponseDTO>>> listarPorTraslado(@PathVariable Long idTraslado) {
+        log.info("GET /api/v1/traslados/{}/custodias", idTraslado);
+        List<TrasladoCustodiaResponseDTO> response = custodiaService.listarPorTraslado(idTraslado);
         return ResponseEntity.ok(GenericResponseDTO.<List<TrasladoCustodiaResponseDTO>>builder().response(response).build());
     }
 
-    //GET http://localhost:8093/api/v1/custodias/custodias/personal/1
     @GetMapping("/custodias/personal/{idPersonal}")
-    public ResponseEntity<GenericResponseDTO<List<TrasladoResponseDTO>>> getTrasladosXCustodio(
-            @PathVariable Long idPersonal) {
-        log.info("GET /custodias/personal/{} - Listar traslados por custodio", idPersonal);
-        List<TrasladoResponseDTO> response = trasladoCustodiaService.getTrasladosXCustodio(idPersonal);
-        return ResponseEntity.ok(GenericResponseDTO.<List<TrasladoResponseDTO>>builder().response(response).build());
+    public ResponseEntity<GenericResponseDTO<List<TrasladoCustodiaResponseDTO>>> listarPorPersonal(@PathVariable Long idPersonal) {
+        log.info("GET /api/v1/custodias/personal/{}", idPersonal);
+        List<TrasladoCustodiaResponseDTO> response = custodiaService.listarPorPersonal(idPersonal);
+        return ResponseEntity.ok(GenericResponseDTO.<List<TrasladoCustodiaResponseDTO>>builder().response(response).build());
     }
 }

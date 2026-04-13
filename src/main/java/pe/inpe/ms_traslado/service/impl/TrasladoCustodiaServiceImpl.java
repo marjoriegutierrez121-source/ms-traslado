@@ -6,17 +6,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.inpe.ms_traslado.dto.TrasladoCustodiaRequestDTO;
 import pe.inpe.ms_traslado.dto.TrasladoCustodiaResponseDTO;
-import pe.inpe.ms_traslado.dto.TrasladoResponseDTO;
 import pe.inpe.ms_traslado.entity.Traslado;
 import pe.inpe.ms_traslado.entity.TrasladoCustodia;
+import pe.inpe.ms_traslado.exception.BusinessException;
+import pe.inpe.ms_traslado.exception.ResourceNotFoundException;
 import pe.inpe.ms_traslado.mapper.TrasladoCustodiaMapper;
-import pe.inpe.ms_traslado.mapper.TrasladoMapper;
 import pe.inpe.ms_traslado.repository.TrasladoCustodiaRepository;
 import pe.inpe.ms_traslado.repository.TrasladoRepository;
 import pe.inpe.ms_traslado.service.TrasladoCustodiaService;
-import pe.inpe.ms_traslado.util.TrasladoEstados;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -24,78 +22,60 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TrasladoCustodiaServiceImpl implements TrasladoCustodiaService {
 
+    private final TrasladoCustodiaRepository custodiaRepository;
     private final TrasladoRepository trasladoRepository;
-    private final TrasladoCustodiaRepository trasladoCustodiaRepository;
-    private final TrasladoCustodiaMapper trasladoCustodiaMapper;
-    private final TrasladoMapper trasladoMapper;
+    private final TrasladoCustodiaMapper custodiaMapper;
 
     @Override
-    @Transactional
-    public TrasladoCustodiaResponseDTO addCustodia(Long idTraslado, TrasladoCustodiaRequestDTO requestDto) {
-        log.info("Asignando custodio {} al traslado {}", requestDto.getIdPersonal(), idTraslado);
+    public TrasladoCustodiaResponseDTO asignarCustodia(Long idTraslado, TrasladoCustodiaRequestDTO dto) {
+        log.info("Asignando custodia - traslado id: {}, personal id: {}", idTraslado, dto.getIdPersonal());
 
-        Traslado traslado = trasladoRepository.findById(idTraslado)
-                .orElseThrow(() -> new RuntimeException("Traslado no encontrado con ID: " + idTraslado));
+        Traslado traslado = buscarTrasladoPorId(idTraslado);
+        validarCustodioNoAsignado(idTraslado, dto.getIdPersonal());
 
-        if (!TrasladoEstados.PROGRAMADO.equals(traslado.getEstadoTrasladoId())) {
-            throw new IllegalStateException("Solo se pueden asignar custodios en traslados PROGRAMADOS");
-        }
-
-        if (trasladoCustodiaRepository.existsByTrasladoAndIdPersonal(traslado, requestDto.getIdPersonal())) {
-            throw new IllegalStateException("El personal ya está asignado como custodio de este traslado");
-        }
-
-        TrasladoCustodia custodia = trasladoCustodiaMapper.toEntity(requestDto);
+        TrasladoCustodia custodia = custodiaMapper.toEntity(dto);
         custodia.setTraslado(traslado);
 
-        custodia.setRegistrationDate(LocalDateTime.now());
-        custodia.setRegistrationUser("SYSTEM");
-        custodia.setLastModificationDate(LocalDateTime.now());
-        custodia.setLastModificationUser("SYSTEM");
-
-        TrasladoCustodia saved = trasladoCustodiaRepository.save(custodia);
-        log.info("Custodio asignado exitosamente con ID: {}", saved.getIdTrasladoCustodia());
-
-        return trasladoCustodiaMapper.toResponseDTO(saved);
+        return custodiaMapper.toDto(custodiaRepository.save(custodia));
     }
 
     @Override
-    @Transactional
-    public void removeCustodia(Long idTraslado, Long idPersonal) {
-        log.info("Removiendo custodio {} del traslado {}", idPersonal, idTraslado);
+    public void removerCustodia(Long idTraslado, Long idPersonal) {
+        log.info("Removiendo custodia - traslado id: {}, personal id: {}", idTraslado, idPersonal);
 
-        Traslado traslado = trasladoRepository.findById(idTraslado)
-                .orElseThrow(() -> new RuntimeException("Traslado no encontrado con ID: " + idTraslado));
-
-        // Solo se puede remover custodios si está PROGRAMADO
-        if (!TrasladoEstados.PROGRAMADO.equals(traslado.getEstadoTrasladoId())) {
-            throw new IllegalStateException("Solo se pueden remover custodios en traslados PROGRAMADOS");
+        if (!custodiaRepository.existsByTrasladoIdTrasladoAndIdPersonal(idTraslado, idPersonal)) {
+            throw new ResourceNotFoundException(
+                    "Custodio con personal id " + idPersonal + " no asignado al traslado id " + idTraslado);
         }
 
-        TrasladoCustodia custodia = trasladoCustodiaRepository
-                .findByTrasladoAndIdPersonal(traslado, idPersonal)
-                .orElseThrow(() -> new RuntimeException("Custodio no encontrado para este traslado"));
-
-        trasladoCustodiaRepository.delete(custodia);
-        log.info("Custodio removido exitosamente");
+        custodiaRepository.deleteByTrasladoIdTrasladoAndIdPersonal(idTraslado, idPersonal);
     }
 
     @Override
-    public List<TrasladoCustodiaResponseDTO> getCustodiasXTraslado(Long idTraslado) {
-        log.info("Listando custodios del traslado: {}", idTraslado);
-
-        Traslado traslado = trasladoRepository.findById(idTraslado)
-                .orElseThrow(() -> new RuntimeException("Traslado no encontrado con ID: " + idTraslado));
-
-        List<TrasladoCustodia> custodias = trasladoCustodiaRepository.findByTraslado(traslado);
-        return trasladoCustodiaMapper.toResponseDTOList(custodias);
+    @Transactional(readOnly = true)
+    public List<TrasladoCustodiaResponseDTO> listarPorTraslado(Long idTraslado) {
+        log.info("Listando custodios del traslado id: {}", idTraslado);
+        buscarTrasladoPorId(idTraslado); // valida que el traslado exista
+        return custodiaMapper.toDtoList(custodiaRepository.findByTrasladoIdTraslado(idTraslado));
     }
 
     @Override
-    public List<TrasladoResponseDTO> getTrasladosXCustodio(Long idPersonal) {
-        log.info("Listando traslados del custodio: {}", idPersonal);
+    @Transactional(readOnly = true)
+    public List<TrasladoCustodiaResponseDTO> listarPorPersonal(Long idPersonal) {
+        log.info("Listando traslados del personal id: {}", idPersonal);
+        return custodiaMapper.toDtoList(custodiaRepository.findByIdPersonal(idPersonal));
+    }
 
-        List<Traslado> traslados = trasladoCustodiaRepository.findTrasladosByPersonal(idPersonal);
-        return trasladoMapper.toResponseDTOList(traslados);
+    private Traslado buscarTrasladoPorId(Long idTraslado) {
+        return trasladoRepository.findById(idTraslado)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Traslado no encontrado con id: " + idTraslado));
+    }
+
+    private void validarCustodioNoAsignado(Long idTraslado, Long idPersonal) {
+        if (custodiaRepository.existsByTrasladoIdTrasladoAndIdPersonal(idTraslado, idPersonal)) {
+            throw new BusinessException(
+                    "El personal id " + idPersonal + " ya está asignado al traslado id " + idTraslado);
+        }
     }
 }

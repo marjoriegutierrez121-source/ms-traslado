@@ -1,24 +1,31 @@
 package pe.inpe.ms_traslado.dto;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrasladoRequestDTO {
+public class SolicitudTrasladoRequestDTO {
+
+
     private Long idInterno;
-    private Long sedeOrigenId;
+
     private Long sedeDestinoId;
+
     private Long causaId;
+
     private Long idResolucion;
+
     private LocalDateTime fechaTraslado;
-    private LocalDateTime fechaLlegada;
-    private Long estadoTrasladoId;
+
     private String observaciones;
+
+    private List<TrasladoCustodiaRequestDTO> custodios;
 }

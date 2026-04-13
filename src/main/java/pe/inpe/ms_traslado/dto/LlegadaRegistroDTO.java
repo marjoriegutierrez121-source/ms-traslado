@@ -5,12 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 
 @Data
-@Builder
 @NoArgsConstructor
+@Builder
 @AllArgsConstructor
-public class CambioEstadoDTO {
-    private Long estadoTrasladoId;
-    private String observaciones;
+public class LlegadaRegistroDTO {
+    private LocalDateTime fechaLlegada;
 }

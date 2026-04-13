@@ -5,12 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CambioEstadoDTO {
-    private Long estadoTrasladoId;
-    private String observaciones;
+public class ParametroResumenDTO {
+    private Long idParametro;
+    private String codigoParametro;
+    private String valorParametro;
+    private String descripcionParametro;
 }

@@ -21,7 +21,9 @@ public class TrasladoResponseDTO {
     private LocalDateTime fechaTraslado;
     private LocalDateTime fechaLlegada;
     private Long estadoTrasladoId;
-    private String estadoNombre;
     private String observaciones;
-    private List<TrasladoCustodiaResponseDTO> custodias;
+    private LocalDateTime registrationDate;
+    private String registrationUser;
+    private LocalDateTime lastModificationDate;
+    private String lastModificationUser;
 }

@@ -50,7 +50,4 @@ public class Traslado extends AuditModel {
 
     @Column(name = "observaciones")
     private String observaciones;
-
-    @OneToMany(mappedBy = "traslado", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<TrasladoCustodia> custodias = new ArrayList<>();
 }

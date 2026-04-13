@@ -1,5 +1,4 @@
 package pe.inpe.ms_traslado.dto;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,8 +8,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ValidacionTrasladoDTO {
-    private Boolean tieneTrasladoActivo;
-    private TrasladoResponseDTO trasladoActivo;
-    private String mensaje;
+public class InternoResumenDTO {
+    private Long idInterno;
+    private Long idPersona;
+    private String codigoInterno;
+    private Boolean activo;
 }
