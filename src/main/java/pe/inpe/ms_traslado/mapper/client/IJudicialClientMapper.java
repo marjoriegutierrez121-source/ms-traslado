@@ -1,5 +1,6 @@
 package pe.inpe.ms_traslado.mapper.client;
 
+import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import pe.inpe.ms_traslado.dto.ExpedienteResponseDTO;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Mapper(componentModel = "spring")
 public interface IJudicialClientMapper {
     /**
      * Convierte lista de expedientes y mandato activo a ResumenJudicialDTO

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import pe.inpe.ms_traslado.dto.*;
 
 
-@FeignClient(name = "ms-interno", url = "http://localhost:8084")
+@FeignClient(name = "ms-interno")
 public interface MsInternoClient {
 
     @GetMapping("/api/v1/interno/{id}")

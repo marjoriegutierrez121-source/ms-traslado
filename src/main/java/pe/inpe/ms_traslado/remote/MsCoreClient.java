@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import pe.inpe.ms_traslado.dto.GenericResponseDTO;
 import pe.inpe.ms_traslado.dto.ParameterTableResponseDTO;
 
-@FeignClient(name = "ms-core", url = "${ms.core.url:http://localhost:8082}")
+@FeignClient(name = "ms-core")
 public interface MsCoreClient {
 
     @GetMapping("/api/v1/core/parameters/tipo/{tipo}/codigo/{codigo}")

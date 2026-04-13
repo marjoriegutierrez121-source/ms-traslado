@@ -8,7 +8,7 @@ import pe.inpe.ms_traslado.dto.GenericResponseDTO;
 import pe.inpe.ms_traslado.dto.SedeDisponibilidadRemotoDTO;
 import pe.inpe.ms_traslado.dto.SedeResponseDTO;
 
-@FeignClient(name = "ms-Infraestructura-penitenciaria", url = "http://localhost:8092")
+@FeignClient(name = "ms-Infraestructura-penitenciaria")
 public interface MsInstitucionesClient {
 
     @GetMapping("/api/v1/instituciones/sedes/{id}")

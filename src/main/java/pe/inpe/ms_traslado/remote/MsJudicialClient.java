@@ -10,7 +10,7 @@ import pe.inpe.ms_traslado.dto.RestriccionesTrasladoDTO;
 
 import java.util.List;
 
-@FeignClient(name = "ms-judicial", url = "${ms.judicial.url:http://localhost:8084}")
+@FeignClient(name = "ms-judicial")
 public interface MsJudicialClient {
 
     @GetMapping("/api/v1/judicial/interno/{idInterno}/mandato-activo")

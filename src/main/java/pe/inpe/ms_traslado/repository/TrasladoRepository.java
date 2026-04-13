@@ -3,13 +3,15 @@ package pe.inpe.ms_traslado.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import pe.inpe.ms_traslado.entity.Traslado;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Repository
 public interface TrasladoRepository extends JpaRepository<Traslado, Long> {
-    List<Traslado> findByEstadoTrasladoId(List<Long> estadoTrasladoId);
+    List<Traslado> findByEstadoTrasladoIdIn(List<Long> estadoTrasladoIds);
     List<Traslado> findByIdInterno(Long idInterno);
     List<Traslado> findBySedeOrigenId(Long sedeOrigenId);
     List<Traslado> findBySedeDestinoId(Long sedeDestinoId);

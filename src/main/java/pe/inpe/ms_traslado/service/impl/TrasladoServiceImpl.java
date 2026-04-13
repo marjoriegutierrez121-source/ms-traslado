@@ -140,7 +140,7 @@ public class TrasladoServiceImpl implements TrasladoService {
     public List<TrasladoResponseDTO> listarEnCurso() {
         log.info("Listando traslados en curso");
         return trasladoMapper.toDtoList(
-                trasladoRepository.findByEstadoTrasladoId(List.of(ESTADO_TRASLADO_EN_TRANSITO))
+                trasladoRepository.findByEstadoTrasladoIdIn(List.of(ESTADO_TRASLADO_EN_TRANSITO))
         );
     }
 
